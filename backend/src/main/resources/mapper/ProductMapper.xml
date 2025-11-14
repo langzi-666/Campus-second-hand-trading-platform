@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.campus.trade.mapper.ProductMapper">
+    
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="com.campus.trade.entity.Product">
+        <id column="id" property="id" />
+        <result column="user_id" property="userId" />
+        <result column="category_id" property="categoryId" />
+        <result column="title" property="title" />
+        <result column="description" property="description" />
+        <result column="price" property="price" />
+        <result column="original_price" property="originalPrice" />
+        <result column="images" property="images" />
+        <result column="condition_level" property="conditionLevel" />
+        <result column="location" property="location" />
+        <result column="contact_info" property="contactInfo" />
+        <result column="status" property="status" />
+        <result column="view_count" property="viewCount" />
+        <result column="favorite_count" property="favoriteCount" />
+        <result column="is_featured" property="isFeatured" />
+        <result column="created_at" property="createdAt" />
+        <result column="updated_at" property="updatedAt" />
+    </resultMap>
+    
+    <!-- 分页查询商品列表 -->
+    <select id="selectProductPage" resultMap="BaseResultMap">
+        SELECT * FROM products 
+        WHERE status IN (1, 2)
+        <if test="categoryId != null">
+            AND category_id = #{categoryId}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            AND (title LIKE CONCAT('%', #{keyword}, '%') 
+                 OR description LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="userId != null">
+            AND user_id = #{userId}
+        </if>
+        ORDER BY created_at DESC
+    </select>
+    
+    <!-- 获取推荐商品 -->
+    <select id="selectFeaturedProducts" resultMap="BaseResultMap">
+        SELECT * FROM products 
+        WHERE status = 1 AND is_featured = 1 
+        ORDER BY created_at DESC 
+        LIMIT #{limit}
+    </select>
+    
+    <!-- 根据用户ID获取商品列表 -->
+    <select id="selectByUserId" resultMap="BaseResultMap">
+        SELECT * FROM products 
+        WHERE user_id = #{userId} AND status != 4
+        ORDER BY created_at DESC
+    </select>
+    
+    <!-- 更新浏览次数 -->
+    <update id="updateViewCount">
+        UPDATE products 
+        SET view_count = view_count + 1 
+        WHERE id = #{productId}
+    </update>
+    
+</mapper>

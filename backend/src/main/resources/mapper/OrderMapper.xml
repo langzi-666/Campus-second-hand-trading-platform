@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.campus.trade.mapper.OrderMapper">
+    
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="com.campus.trade.entity.Order">
+        <id column="id" property="id" />
+        <result column="order_no" property="orderNo" />
+        <result column="buyer_id" property="buyerId" />
+        <result column="seller_id" property="sellerId" />
+        <result column="product_id" property="productId" />
+        <result column="product_title" property="productTitle" />
+        <result column="product_image" property="productImage" />
+        <result column="price" property="price" />
+        <result column="trade_method" property="tradeMethod" />
+        <result column="trade_location" property="tradeLocation" />
+        <result column="buyer_contact" property="buyerContact" />
+        <result column="seller_contact" property="sellerContact" />
+        <result column="status" property="status" />
+        <result column="remark" property="remark" />
+        <result column="buyer_confirm_at" property="buyerConfirmAt" />
+        <result column="seller_confirm_at" property="sellerConfirmAt" />
+        <result column="completed_at" property="completedAt" />
+        <result column="cancelled_at" property="cancelledAt" />
+        <result column="cancel_reason" property="cancelReason" />
+        <result column="created_at" property="createdAt" />
+        <result column="updated_at" property="updatedAt" />
+    </resultMap>
+    
+    <!-- 分页查询买家订单 -->
+    <select id="selectBuyerOrderPage" resultMap="BaseResultMap">
+        SELECT * FROM orders 
+        WHERE buyer_id = #{buyerId}
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+        ORDER BY created_at DESC
+    </select>
+    
+    <!-- 分页查询卖家订单 -->
+    <select id="selectSellerOrderPage" resultMap="BaseResultMap">
+        SELECT * FROM orders 
+        WHERE seller_id = #{sellerId}
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+        ORDER BY created_at DESC
+    </select>
+    
+    <!-- 根据订单号查询订单 -->
+    <select id="selectByOrderNo" resultMap="BaseResultMap">
+        SELECT * FROM orders WHERE order_no = #{orderNo}
+    </select>
+    
+    <!-- 查询用户参与的所有订单 -->
+    <select id="selectUserOrders" resultMap="BaseResultMap">
+        SELECT * FROM orders 
+        WHERE buyer_id = #{userId} OR seller_id = #{userId}
+        ORDER BY created_at DESC
+    </select>
+    
+    <!-- 统计用户订单数量 -->
+    <select id="countUserOrders" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM orders 
+        WHERE (buyer_id = #{userId} OR seller_id = #{userId})
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+    </select>
+    
+</mapper>

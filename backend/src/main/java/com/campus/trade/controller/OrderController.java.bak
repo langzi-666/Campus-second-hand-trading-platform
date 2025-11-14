@@ -1,0 +1,213 @@
+package com.campus.trade.controller;
+
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.campus.trade.common.Result;
+import com.campus.trade.dto.OrderCreateDTO;
+import com.campus.trade.entity.Order;
+import com.campus.trade.service.OrderService;
+import com.campus.trade.utils.JwtUtils;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.validation.Valid;
+
+/**
+ * 订单控制器
+ * 
+ * @author 开发团队
+ */
+@RestController
+@RequestMapping("/orders")
+@Api(tags = "订单管理")
+@CrossOrigin
+public class OrderController {
+    
+    @Autowired
+    private OrderService orderService;
+    
+    @Autowired
+    private JwtUtils jwtUtils;
+    
+    /**
+     * 创建订单
+     */
+    @PostMapping
+    @ApiOperation("创建订单")
+    public Result<Long> createOrder(@Valid @RequestBody OrderCreateDTO createDTO,
+                                  HttpServletRequest request) {
+        try {
+            Long buyerId = getUserIdFromRequest(request);
+            Long orderId = orderService.createOrder(createDTO, buyerId);
+            return Result.success("订单创建成功", orderId);
+        } catch (Exception e) {
+            return Result.error(e.getMessage());
+        }
+    }
+    
+    /**
+     * 确认订单
+     */
+    @PutMapping("/{id}/confirm")
+    @ApiOperation("确认订单")
+    public Result<String> confirmOrder(@PathVariable Long id,
+                                     @RequestParam String sellerContact,
+                                     HttpServletRequest request) {
+        try {
+            Long sellerId = getUserIdFromRequest(request);
+            boolean success = orderService.confirmOrder(id, sellerId, sellerContact);
+            if (success) {
+                return Result.success("订单确认成功");
+            } else {
+                return Result.error("订单确认失败");
+            }
+        } catch (Exception e) {
+            return Result.error(e.getMessage());
+        }
+    }
+    
+    /**
+     * 完成订单
+     */
+    @PutMapping("/{id}/complete")
+    @ApiOperation("完成订单")
+    public Result<String> completeOrder(@PathVariable Long id,
+                                      HttpServletRequest request) {
+        try {
+            Long userId = getUserIdFromRequest(request);
+            boolean success = orderService.completeOrder(id, userId);
+            if (success) {
+                return Result.success("订单完成成功");
+            } else {
+                return Result.error("订单完成失败");
+            }
+        } catch (Exception e) {
+            return Result.error(e.getMessage());
+        }
+    }
+    
+    /**
+     * 取消订单
+     */
+    @PutMapping("/{id}/cancel")
+    @ApiOperation("取消订单")
+    public Result<String> cancelOrder(@PathVariable Long id,
+                                    @RequestParam(required = false) String reason,
+                                    HttpServletRequest request) {
+        try {
+            Long userId = getUserIdFromRequest(request);
+            boolean success = orderService.cancelOrder(id, userId, reason);
+            if (success) {
+                return Result.success("订单取消成功");
+            } else {
+                return Result.error("订单取消失败");
+            }
+        } catch (Exception e) {
+            return Result.error(e.getMessage());
+        }
+    }
+    
+    /**
+     * 获取订单详情
+     */
+    @GetMapping("/{id}")
+    @ApiOperation("获取订单详情")
+    public Result<Order> getOrder(@PathVariable Long id,
+                                HttpServletRequest request) {
+        try {
+            Long userId = getUserIdFromRequest(request);
+            Order order = orderService.getOrderById(id, userId);
+            if (order != null) {
+                return Result.success(order);
+            } else {
+                return Result.notFound();
+            }
+        } catch (Exception e) {
+            return Result.error(e.getMessage());
+        }
+    }
+    
+    /**
+     * 获取我的购买订单
+     */
+    @GetMapping("/buyer")
+    @ApiOperation("获取我的购买订单")
+    public Result<IPage<Order>> getBuyerOrders(@RequestParam(defaultValue = "1") Integer page,
+                                             @RequestParam(defaultValue = "10") Integer size,
+                                             @RequestParam(required = false) Integer status,
+                                             HttpServletRequest request) {
+        try {
+            Long buyerId = getUserIdFromRequest(request);
+            IPage<Order> orderPage = orderService.getBuyerOrderPage(page, size, buyerId, status);
+            return Result.success(orderPage);
+        } catch (Exception e) {
+            return Result.error(e.getMessage());
+        }
+    }
+    
+    /**
+     * 获取我的销售订单
+     */
+    @GetMapping("/seller")
+    @ApiOperation("获取我的销售订单")
+    public Result<IPage<Order>> getSellerOrders(@RequestParam(defaultValue = "1") Integer page,
+                                              @RequestParam(defaultValue = "10") Integer size,
+                                              @RequestParam(required = false) Integer status,
+                                              HttpServletRequest request) {
+        try {
+            Long sellerId = getUserIdFromRequest(request);
+            IPage<Order> orderPage = orderService.getSellerOrderPage(page, size, sellerId, status);
+            return Result.success(orderPage);
+        } catch (Exception e) {
+            return Result.error(e.getMessage());
+        }
+    }
+    
+    /**
+     * 根据订单号查询订单
+     */
+    @GetMapping("/search")
+    @ApiOperation("根据订单号查询订单")
+    public Result<Order> getOrderByOrderNo(@RequestParam String orderNo) {
+        try {
+            Order order = orderService.getOrderByOrderNo(orderNo);
+            if (order != null) {
+                return Result.success(order);
+            } else {
+                return Result.notFound();
+            }
+        } catch (Exception e) {
+            return Result.error(e.getMessage());
+        }
+    }
+    
+    /**
+     * 统计订单数量
+     */
+    @GetMapping("/count")
+    @ApiOperation("统计订单数量")
+    public Result<Integer> countOrders(@RequestParam(required = false) Integer status,
+                                     HttpServletRequest request) {
+        try {
+            Long userId = getUserIdFromRequest(request);
+            Integer count = orderService.countUserOrders(userId, status);
+            return Result.success(count);
+        } catch (Exception e) {
+            return Result.error(e.getMessage());
+        }
+    }
+    
+    /**
+     * 从请求中获取用户ID
+     */
+    private Long getUserIdFromRequest(HttpServletRequest request) {
+        String token = request.getHeader("Authorization");
+        if (token != null && token.startsWith("Bearer ")) {
+            token = token.substring(7);
+            return jwtUtils.getUserIdFromToken(token);
+        }
+        throw new RuntimeException("未授权访问");
+    }
+}
