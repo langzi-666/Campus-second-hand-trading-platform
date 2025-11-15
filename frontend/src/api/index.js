@@ -1,7 +1,12 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
-import store from '@/store'
-import router from '@/router'
+let injectedStore = null
+let injectedRouter = null
+
+export const inject = ({ store, router }) => {
+  injectedStore = store
+  injectedRouter = router
+}
 
 // 创建axios实例
 const request = axios.create({
@@ -13,7 +18,7 @@ const request = axios.create({
 request.interceptors.request.use(
   config => {
     // 添加token到请求头
-    const token = store.state.auth.token
+    const token = injectedStore?.state?.auth?.token
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -35,8 +40,8 @@ request.interceptors.response.use(
       
       // 401未授权，跳转到登录页
       if (res.code === 401) {
-        store.dispatch('auth/logout')
-        router.push('/login')
+        injectedStore?.dispatch('auth/logout')
+        injectedRouter?.push('/login')
       }
       
       return Promise.reject(new Error(res.message || '请求失败'))
@@ -55,8 +60,8 @@ request.interceptors.response.use(
           break
         case 401:
           message = '未授权，请重新登录'
-          store.dispatch('auth/logout')
-          router.push('/login')
+          injectedStore?.dispatch('auth/logout')
+          injectedRouter?.push('/login')
           break
         case 403:
           message = '拒绝访问'
@@ -94,18 +99,21 @@ const api = {
   user: {
     getProfile: () => request.get('/user/profile'),
     updateProfile: (data) => request.put('/user/profile', data),
-    changePassword: (data) => request.put('/user/password', data),
-    uploadAvatar: (data) => request.post('/user/avatar', data)
+    changePassword: (data) => request.put('/user/password', null, { params: data }),
+    uploadAvatar: (data) => request.post('/user/avatar', data),
+    getUserStats: () => request.get('/user/stats')
   },
   
-  // 商品相关
+  // 商品相关API
   product: {
-    getList: (params) => request.get('/products', { params }),
-    getDetail: (id) => request.get(`/products/${id}`),
-    create: (data) => request.post('/products', data),
-    update: (id, data) => request.put(`/products/${id}`, data),
-    delete: (id) => request.delete(`/products/${id}`),
-    uploadImage: (data) => request.post('/products/upload', data)
+    getProducts: (params) => request.get('/products', { params }),
+    getProduct: (id) => request.get(`/products/${id}`),
+    createProduct: (data) => request.post('/products', data),
+    updateProduct: (id, data) => request.put(`/products/${id}`, data),
+    deleteProduct: (id) => request.delete(`/products/${id}`),
+    getFeaturedProducts: () => request.get('/products/featured'),
+    getMyProducts: () => request.get('/products/my'),
+    updateProductStatus: (id, status) => request.put(`/products/${id}/status`, { status })
   },
   
   // 分类相关
@@ -121,11 +129,25 @@ const api = {
     updateStatus: (id, status) => request.put(`/orders/${id}/status`, { status })
   },
   
-  // 消息相关
+  // 消息相关API
   message: {
-    getList: (params) => request.get('/messages', { params }),
+    // 发送消息
     send: (data) => request.post('/messages', data),
-    markRead: (id) => request.put(`/messages/${id}/read`)
+    
+    // 获取会话消息
+    getConversationMessages: (params) => request.get('/messages/conversation', { params }),
+    
+    // 获取会话列表
+    getConversations: () => request.get('/messages/conversations'),
+    
+    // 标记消息为已读
+    markAsRead: (params) => request.put('/messages/read', null, { params }),
+    
+    // 获取未读消息数量
+    getUnreadCount: () => request.get('/messages/unread/count'),
+    
+    // 获取最新消息
+    getLatestMessage: (params) => request.get('/messages/latest', { params })
   }
 }
 

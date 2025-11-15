@@ -1,4 +1,4 @@
-@echo off
+
 chcp 65001 >nul
 title 校园二手交易平台 - 快捷启动
 

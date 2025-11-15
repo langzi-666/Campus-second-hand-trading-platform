@@ -9,12 +9,22 @@ import com.campus.trade.service.UserService;
 import com.campus.trade.utils.JwtUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+// import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+// import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * 用户服务实现类
@@ -30,7 +40,7 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private JwtUtils jwtUtils;
     
-    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    // private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     
     @Override
     public boolean register(UserRegisterDTO registerDTO) {
@@ -132,5 +142,117 @@ public class UserServiceImpl implements UserService {
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("email", email);
         return userMapper.selectCount(queryWrapper) > 0;
+    }
+    
+    @Override
+    public boolean existsByStudentId(String studentId) {
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("student_id", studentId);
+        return userMapper.selectCount(queryWrapper) > 0;
+    }
+    
+    @Override
+    public boolean updateProfile(Long userId, UserRegisterDTO updateDTO) {
+        try {
+            User user = new User();
+            BeanUtils.copyProperties(updateDTO, user);
+            user.setId(userId);
+            user.setUpdatedAt(LocalDateTime.now());
+            // 不更新密码
+            user.setPassword(null);
+            return userMapper.updateById(user) > 0;
+        } catch (Exception e) {
+            throw new RuntimeException("更新用户信息失败: " + e.getMessage());
+        }
+    }
+    
+    @Override
+    public boolean changePassword(Long userId, String oldPassword, String newPassword) {
+        try {
+            User user = userMapper.selectById(userId);
+            if (user == null) {
+                throw new RuntimeException("用户不存在");
+            }
+            
+            // 验证原密码（明文比较）
+            if (!oldPassword.equals(user.getPassword())) {
+                return false;
+            }
+            
+            // 更新为新密码（明文存储）
+            user.setPassword(newPassword);
+            user.setUpdatedAt(LocalDateTime.now());
+            return userMapper.updateById(user) > 0;
+        } catch (Exception e) {
+            throw new RuntimeException("修改密码失败: " + e.getMessage());
+        }
+    }
+    
+    @Value("${file.upload.path:/uploads/}")
+    private String uploadPath;
+    
+    @Override
+    public String uploadAvatar(Long userId, MultipartFile file) {
+        try {
+            // 检查文件类型
+            String originalFilename = file.getOriginalFilename();
+            if (originalFilename == null || !isImageFile(originalFilename)) {
+                throw new RuntimeException("只支持图片文件");
+            }
+            
+            // 创建上传目录
+            String dateDir = LocalDate.now().toString();
+            Path uploadDir = Paths.get(uploadPath, "avatars", dateDir);
+            Files.createDirectories(uploadDir);
+            
+            // 生成文件名
+            String extension = getFileExtension(originalFilename);
+            String filename = UUID.randomUUID().toString() + "." + extension;
+            Path filePath = uploadDir.resolve(filename);
+            
+            // 保存文件
+            Files.copy(file.getInputStream(), filePath);
+            
+            // 更新用户头像
+            String avatarUrl = "/uploads/avatars/" + dateDir + "/" + filename;
+            User user = new User();
+            user.setId(userId);
+            user.setAvatar(avatarUrl);
+            user.setUpdatedAt(LocalDateTime.now());
+            userMapper.updateById(user);
+            
+            return avatarUrl;
+        } catch (IOException e) {
+            throw new RuntimeException("头像上传失败: " + e.getMessage());
+        }
+    }
+    
+    @Override
+    public Map<String, Object> getUserStats(Long userId) {
+        Map<String, Object> stats = new HashMap<>();
+        
+        // 这里可以添加统计查询，暂时返回模拟数据
+        stats.put("productCount", 0);  // 发布商品数
+        stats.put("orderCount", 0);    // 订单数
+        stats.put("messageCount", 0);  // 消息数
+        stats.put("favoriteCount", 0); // 收藏数
+        
+        return stats;
+    }
+    
+    /**
+     * 检查是否为图片文件
+     */
+    private boolean isImageFile(String filename) {
+        String extension = getFileExtension(filename).toLowerCase();
+        return extension.matches("jpg|jpeg|png|gif|bmp|webp");
+    }
+    
+    /**
+     * 获取文件扩展名
+     */
+    private String getFileExtension(String filename) {
+        int lastDotIndex = filename.lastIndexOf('.');
+        return lastDotIndex > 0 ? filename.substring(lastDotIndex + 1) : "";
     }
 }

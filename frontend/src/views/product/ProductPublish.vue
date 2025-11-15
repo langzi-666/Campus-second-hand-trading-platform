@@ -254,7 +254,7 @@ export default {
         await productFormRef.value.validate()
         loading.value = true
         
-        await api.product.create(productForm)
+        await api.product.createProduct(productForm)
         
         ElMessage.success('商品发布成功')
         router.push('/user')

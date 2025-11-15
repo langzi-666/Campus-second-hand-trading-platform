@@ -24,7 +24,7 @@ const actions = {
   // 获取商品列表
   async getProducts({ commit }, params) {
     try {
-      const response = await api.product.getList(params)
+      const response = await api.product.getProducts(params)
       commit('SET_PRODUCTS', response.data)
       return response
     } catch (error) {
@@ -46,7 +46,7 @@ const actions = {
   // 获取商品详情
   async getProductDetail({ commit }, id) {
     try {
-      const response = await api.product.getDetail(id)
+      const response = await api.product.getProduct(id)
       commit('SET_CURRENT_PRODUCT', response.data)
       return response
     } catch (error) {
@@ -68,3 +68,4 @@ export default {
   actions,
   getters
 }
+

@@ -128,6 +128,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useStore } from 'vuex'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import api from '@/api'
+import { getProductById } from '@/mock/data'
 
 export default {
   name: 'ProductDetail',
@@ -169,36 +170,23 @@ export default {
       try {
         loading.value = true
         const productId = route.params.id
-        
-        // 暂时使用模拟数据
-        const mockProduct = {
-          id: parseInt(productId),
-          userId: 2,
-          title: 'iPhone 13 128G 蓝色',
-          price: 4500,
-          originalPrice: 5999,
-          conditionLevel: 2,
-          location: '宿舍楼下',
-          contactInfo: '微信：abc123456',
-          description: '9成新iPhone 13，蓝色128G版本。购买时间2022年3月，平时使用爱护，功能完全正常，外观几乎无磨损。配件齐全：原装充电器、数据线、耳机转接头、包装盒、说明书等。因为换了新手机所以出售，诚心出售，价格可小刀。',
-          viewCount: 156,
-          favoriteCount: 23,
-          status: 1,
-          images: '[]',
-          createdAt: '2024-11-14T10:00:00'
+        const p = getProductById(productId)
+        if (p) {
+          product.value = {
+            ...p,
+            contactInfo: '微信：campus-trade',
+            description: '校园二手好物，价格可议，支持当面交易。'
+          }
+          seller.value = {
+            id: p.userId,
+            nickname: p.userId === 1 ? '管理员' : `用户${p.userId}`,
+            avatar: '',
+            school: '示例大学',
+            college: '计算机学院'
+          }
+        } else {
+          product.value = null
         }
-        
-        const mockSeller = {
-          id: 2,
-          nickname: '张三',
-          avatar: '',
-          school: '示例大学',
-          college: '计算机学院'
-        }
-        
-        product.value = mockProduct
-        seller.value = mockSeller
-        
       } catch (error) {
         console.error('加载商品详情失败:', error)
         ElMessage.error('加载商品详情失败')

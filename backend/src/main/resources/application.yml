@@ -46,7 +46,7 @@ mybatis-plus:
 
 # JWT配置
 jwt:
-  secret: campus-trade-platform-secret-key-2024
+  secret: campus-trade-platform-secret-key-2024-very-long-secure-key-for-hs512-algorithm-minimum-512-bits-required
   expiration: 604800  # 7天，单位秒
 
 # 文件上传路径配置

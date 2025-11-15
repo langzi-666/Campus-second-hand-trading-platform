@@ -12,6 +12,10 @@
               <el-icon><Plus /></el-icon>
               发布商品
             </el-button>
+            <el-button v-if="isAdmin" type="text" @click="$router.push('/admin')">
+              <el-icon><Setting /></el-icon>
+              管理后台
+            </el-button>
             <el-button type="text" @click="$router.push('/messages')">
               <el-icon><Message /></el-icon>
               消息
@@ -43,25 +47,31 @@
     <!-- 主要内容 -->
     <el-main class="main">
       <div class="container">
-        <!-- 搜索区域 -->
-        <div class="search-section">
-          <el-input
-            v-model="searchKeyword"
-            placeholder="搜索商品..."
-            size="large"
-            class="search-input"
-            @keyup.enter="handleSearch"
-          >
-            <template #append>
-              <el-button @click="handleSearch">
-                <el-icon><Search /></el-icon>
-              </el-button>
-            </template>
-          </el-input>
+        <div class="hero">
+          <div class="hero-content">
+            <h2 class="headline">发现校园好物，放心买卖</h2>
+            <p class="subtext">二手交易 · 安全便捷 · 价格透明</p>
+            <div class="search-wrap">
+              <el-input
+                v-model="searchKeyword"
+                placeholder="搜索商品..."
+                size="large"
+                class="search-input xl"
+                @keyup.enter="handleSearch"
+              >
+                <template #append>
+                  <el-button @click="handleSearch">
+                    <el-icon><Search /></el-icon>
+                  </el-button>
+                </template>
+              </el-input>
+            </div>
+          </div>
         </div>
 
         <!-- 分类导航 -->
-        <div class="category-section">
+        <div class="content-grid">
+        <div class="category-section section-card">
           <h3>商品分类</h3>
           <div class="category-list">
             <div
@@ -77,7 +87,7 @@
         </div>
 
         <!-- 推荐商品 -->
-        <div class="product-section">
+        <div class="product-section section-card">
           <h3>推荐商品</h3>
           <div class="product-grid">
             <div
@@ -87,7 +97,7 @@
               @click="handleProductClick(product)"
             >
               <div class="product-image">
-                <img :src="product.images?.[0] || '/placeholder.svg'" :alt="product.title">
+                <img :src="getProductImage(product)" :alt="product.title">
               </div>
               <div class="product-info">
                 <h4 class="product-title">{{ product.title }}</h4>
@@ -96,6 +106,7 @@
               </div>
             </div>
           </div>
+        </div>
         </div>
       </div>
     </el-main>
@@ -107,6 +118,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { getFeaturedProducts } from '@/mock/data'
 
 export default {
   name: 'Home',
@@ -124,9 +136,9 @@ export default {
     ])
     const products = ref([])
 
-    // 计算属性
     const isAuthenticated = computed(() => store.getters['auth/isAuthenticated'])
     const currentUser = computed(() => store.getters['auth/currentUser'])
+    const isAdmin = computed(() => currentUser.value && currentUser.value.role === 'admin')
 
     // 处理搜索
     const handleSearch = () => {
@@ -151,6 +163,15 @@ export default {
       router.push(`/product/${product.id}`)
     }
 
+    const getProductImage = (product) => {
+      try {
+        const images = JSON.parse(product.images || '[]')
+        return images.length > 0 ? images[0] : '/placeholder.svg'
+      } catch {
+        return '/placeholder.svg'
+      }
+    }
+
     // 处理用户下拉菜单
     const handleCommand = (command) => {
       switch (command) {
@@ -164,33 +185,9 @@ export default {
       }
     }
 
-    // 加载推荐商品
     const loadProducts = async () => {
       try {
-        // 这里暂时使用模拟数据，后续会连接真实API
-        products.value = [
-          {
-            id: 1,
-            title: 'iPhone 13 128G 蓝色',
-            price: 4500,
-            location: '宿舍楼下',
-            images: []
-          },
-          {
-            id: 2,
-            title: 'MacBook Air M1',
-            price: 6800,
-            location: '图书馆',
-            images: []
-          },
-          {
-            id: 3,
-            title: '高等数学教材',
-            price: 45,
-            location: '教学楼',
-            images: []
-          }
-        ]
+        products.value = getFeaturedProducts(12)
       } catch (error) {
         console.error('加载商品失败:', error)
       }
@@ -206,10 +203,12 @@ export default {
       products,
       isAuthenticated,
       currentUser,
+      isAdmin,
       handleSearch,
       handleCategoryClick,
       handleProductClick,
-      handleCommand
+      handleCommand,
+      getProductImage
     }
   }
 }
@@ -270,6 +269,38 @@ export default {
 
 .main {
   padding: 20px 0;
+}
+
+.main .container {
+  display: block;
+}
+
+.hero {
+  background: linear-gradient(135deg, #eef5ff 0%, #f9fbff 100%);
+  border-radius: 12px;
+  padding: 32px 20px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.hero-content { max-width: 880px; margin: 0 auto; text-align: center; }
+.headline { font-size: 26px; color: #1f2d3d; margin: 0 0 6px 0; }
+.subtext { color: #606266; margin: 0 0 14px 0; }
+.search-wrap { display: flex; justify-content: center; }
+.search-input.xl { width: 720px; max-width: 100%; }
+
+.content-grid {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.section-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
 }
 
 .search-section {
@@ -397,6 +428,11 @@ export default {
   
   .product-grid {
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+  
+  .content-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
   }
 }
 </style>

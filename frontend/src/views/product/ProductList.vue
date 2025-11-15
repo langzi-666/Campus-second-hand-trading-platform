@@ -101,7 +101,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import api from '@/api'
+import { getCategories as mockCategories, queryProducts } from '@/mock/data'
 
 export default {
   name: 'ProductList',
@@ -133,15 +133,7 @@ export default {
     // 加载商品分类
     const loadCategories = async () => {
       try {
-        // 暂时使用模拟数据
-        categories.value = [
-          { id: 1, name: '数码产品' },
-          { id: 2, name: '学习用品' },
-          { id: 3, name: '生活用品' },
-          { id: 4, name: '服装鞋帽' },
-          { id: 5, name: '运动器材' },
-          { id: 6, name: '其他' }
-        ]
+        categories.value = mockCategories()
       } catch (error) {
         console.error('加载分类失败:', error)
       }
@@ -151,58 +143,14 @@ export default {
     const loadProducts = async () => {
       try {
         loading.value = true
-        
-        // 暂时使用模拟数据
-        const mockData = {
-          records: [
-            {
-              id: 1,
-              title: 'iPhone 13 128G 蓝色',
-              price: 4500,
-              originalPrice: 5999,
-              conditionLevel: 2,
-              location: '宿舍楼下',
-              viewCount: 156,
-              favoriteCount: 23,
-              status: 1,
-              images: '[]',
-              createdAt: '2024-11-14T10:00:00'
-            },
-            {
-              id: 2,
-              title: 'MacBook Air M1',
-              price: 6800,
-              originalPrice: 7999,
-              conditionLevel: 3,
-              location: '图书馆',
-              viewCount: 89,
-              favoriteCount: 15,
-              status: 1,
-              images: '[]',
-              createdAt: '2024-11-13T15:30:00'
-            },
-            {
-              id: 3,
-              title: '高等数学教材',
-              price: 45,
-              originalPrice: 89,
-              conditionLevel: 2,
-              location: '教学楼',
-              viewCount: 34,
-              favoriteCount: 8,
-              status: 2,
-              images: '[]',
-              createdAt: '2024-11-12T09:15:00'
-            }
-          ],
-          total: 3,
-          current: 1,
-          size: 20
-        }
-        
-        products.value = mockData.records
-        total.value = mockData.total
-        
+        const res = queryProducts({
+          page: searchParams.page,
+          size: searchParams.size,
+          keyword: searchParams.keyword,
+          categoryId: searchParams.categoryId
+        })
+        products.value = res.records
+        total.value = res.total
       } catch (error) {
         console.error('加载商品失败:', error)
         ElMessage.error('加载商品失败')
