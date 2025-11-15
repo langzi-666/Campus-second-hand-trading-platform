@@ -16,6 +16,8 @@ const UserProfile = () => import('@/views/user/Profile.vue')
 const UserOrders = () => import('@/views/user/Orders.vue')
 const UserProducts = () => import('@/views/user/Products.vue')
 const AdminDashboard = () => import('@/views/admin/AdminDashboard.vue')
+const NotifyCenter = () => import('@/views/notify/NotifyCenter.vue')
+const AdminStats = () => import('@/views/admin/Stats.vue')
 
 const routes = [
   {
@@ -86,10 +88,24 @@ const routes = [
   }
   ,
   {
+    path: '/notifications',
+    name: 'NotifyCenter',
+    component: NotifyCenter,
+    meta: { title: '系统通知', requiresAuth: true }
+  }
+  ,
+  {
     path: '/admin',
     name: 'AdminDashboard',
     component: AdminDashboard,
     meta: { title: '管理后台', requiresAuth: true, requiresAdmin: true }
+  }
+  ,
+  {
+    path: '/admin/stats',
+    name: 'AdminStats',
+    component: AdminStats,
+    meta: { title: '数据统计', requiresAuth: true, requiresAdmin: true }
   }
 ]
 

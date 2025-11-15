@@ -20,6 +20,9 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
 
 injectApi({ store, router })
 
+store.dispatch('favorite/load')
+store.dispatch('notify/init')
+
 app.use(store)
 app.use(router)
 app.use(ElementPlus)

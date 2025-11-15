@@ -50,7 +50,7 @@
           @click="handleProductClick(product)"
         >
           <div class="product-image">
-            <img :src="getProductImage(product)" :alt="product.title">
+            <img :src="getProductImage(product)" :alt="product.title" loading="lazy">
             <div class="product-status" v-if="product.status === 2">
               <span class="sold-tag">已售出</span>
             </div>
@@ -69,7 +69,7 @@
             </div>
             <div class="product-stats">
               <span><el-icon><View /></el-icon> {{ product.viewCount || 0 }}</span>
-              <span><el-icon><Star /></el-icon> {{ product.favoriteCount || 0 }}</span>
+              <span :class="{ active: isFav(product.id) }" @click.stop="toggleFavorite(product)"><el-icon><Star /></el-icon> {{ product.favoriteCount || 0 }}</span>
               <span class="publish-time">{{ formatTime(product.createdAt) }}</span>
             </div>
           </div>
@@ -102,11 +102,13 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { getCategories as mockCategories, queryProducts } from '@/mock/data'
+import { useStore } from 'vuex'
 
 export default {
   name: 'ProductList',
   setup() {
     const router = useRouter()
+    const store = useStore()
     const route = useRoute()
     const loading = ref(false)
     const products = ref([])
@@ -184,6 +186,22 @@ export default {
     const getConditionText = (level) => {
       return conditionMap[level] || '未知'
     }
+
+    const isFav = (id) => {
+      try { return store.getters['favorite/isFavorite'](id) } catch { return false }
+    }
+
+    const toggleFavorite = (product) => {
+      const authed = store.getters['auth/isAuthenticated']
+      if (!authed) {
+        ElMessage.warning('请先登录')
+        router.push('/login')
+        return
+      }
+      const before = isFav(product.id)
+      store.dispatch('favorite/toggle', product.id)
+      ElMessage.success(before ? '已取消收藏' : '已加入收藏')
+    }
     
     // 格式化时间
     const formatTime = (timeStr) => {
@@ -230,7 +248,9 @@ export default {
       handleProductClick,
       getProductImage,
       getConditionText,
-      formatTime
+      formatTime,
+      isFav,
+      toggleFavorite
     }
   }
 }
@@ -355,6 +375,10 @@ export default {
   display: flex;
   align-items: center;
   gap: 2px;
+}
+
+.product-stats span.active {
+  color: #e6a23c;
 }
 
 .empty-state {

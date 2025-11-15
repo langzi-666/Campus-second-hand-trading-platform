@@ -75,6 +75,11 @@ export function getFeaturedProducts(limit = 12) {
   return list.slice(0, limit)
 }
 
+export function getHotProducts(limit = 12) {
+  const list = buildAllProducts().slice().sort((a, b) => (b.viewCount + (b.favoriteCount || 0) * 2) - (a.viewCount + (a.favoriteCount || 0) * 2))
+  return list.slice(0, limit)
+}
+
 export function queryProducts(params = {}) {
   const { keyword = '', categoryId = null, page = 1, size = 20 } = params
   const list = buildAllProducts()
@@ -96,4 +101,51 @@ export function queryProducts(params = {}) {
 export function getProductById(id) {
   const list = buildAllProducts()
   return list.find(p => p.id === Number(id)) || null
+}
+
+const ls = typeof window !== 'undefined' ? window.localStorage : {
+  getItem() { return null }, setItem() {}, removeItem() {}
+}
+
+export function getFavorites(userId) {
+  const raw = ls.getItem(`favorites:${userId}`)
+  try { return raw ? JSON.parse(raw) : [] } catch { return [] }
+}
+
+export function isFavorite(userId, productId) {
+  const favs = getFavorites(userId)
+  return favs.includes(Number(productId))
+}
+
+export function toggleFavorite(userId, productId) {
+  const pid = Number(productId)
+  const favs = getFavorites(userId)
+  const idx = favs.indexOf(pid)
+  if (idx >= 0) {
+    favs.splice(idx, 1)
+    ls.setItem(`favorites:${userId}`, JSON.stringify(favs))
+    return false
+  }
+  favs.push(pid)
+  ls.setItem(`favorites:${userId}`, JSON.stringify(favs))
+  return true
+}
+
+export function getReviews(productId) {
+  const raw = ls.getItem(`reviews:${productId}`)
+  try { return raw ? JSON.parse(raw) : [] } catch { return [] }
+}
+
+export function addReview(productId, review) {
+  const list = getReviews(productId)
+  list.unshift({ ...review, id: Date.now(), createdAt: new Date().toISOString() })
+  ls.setItem(`reviews:${productId}`, JSON.stringify(list))
+  return list
+}
+
+export function getStats() {
+  const list = buildAllProducts()
+  const total = list.length
+  const byCategory = categories.map(c => ({ ...c, count: list.filter(p => p.categoryId === c.id).length }))
+  return { totalProducts: total, categories: byCategory }
 }

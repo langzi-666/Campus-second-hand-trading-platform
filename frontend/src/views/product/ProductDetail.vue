@@ -104,8 +104,38 @@
         </div>
       </div>
       
+      <!-- 商品评价 -->
+      <div class="reviews" v-if="product">
+        <h3>商品评价</h3>
+        <div v-if="reviews.length === 0" class="empty">
+          <el-empty description="还没有评论" />
+        </div>
+        <div v-else>
+          <div v-for="item in reviews" :key="item.id" class="review-item">
+            <div class="review-author">
+              {{ item.nickname }}
+              <span class="review-meta">{{ new Date(item.createdAt).toLocaleString() }}</span>
+            </div>
+            <el-rate :model-value="item.rating" disabled allow-half />
+            <div class="review-content">{{ item.content }}</div>
+          </div>
+        </div>
+        
+        <div class="mt-20">
+          <el-form @submit.prevent="submitReview">
+            <el-form-item label="评分">
+              <el-rate v-model="reviewForm.rating" allow-half />
+            </el-form-item>
+            <el-form-item label="评论">
+              <el-input v-model="reviewForm.content" type="textarea" :rows="3" placeholder="说说你的使用感受..." />
+            </el-form-item>
+            <el-button type="primary" @click="submitReview">提交评价</el-button>
+          </el-form>
+        </div>
+      </div>
+      
       <!-- 商品不存在 -->
-      <div v-else-if="!loading" class="not-found">
+      <div v-if="!loading && !product" class="not-found">
         <el-result
           icon="warning"
           title="商品不存在"
@@ -128,7 +158,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useStore } from 'vuex'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import api from '@/api'
-import { getProductById } from '@/mock/data'
+import { getProductById, getReviews, addReview } from '@/mock/data'
 
 export default {
   name: 'ProductDetail',
@@ -139,12 +169,17 @@ export default {
     const loading = ref(false)
     const product = ref(null)
     const seller = ref(null)
+    const reviews = ref([])
+    const reviewForm = ref({ rating: 0, content: '' })
     
     // 计算属性
     const currentUser = computed(() => store.getters['auth/currentUser'])
     const isOwner = computed(() => {
       return product.value && currentUser.value && 
              product.value.userId === currentUser.value.id
+    })
+    const isFavorite = computed(() => {
+      try { return store.getters['favorite/isFavorite'](route.params.id) } catch { return false }
     })
     
     const productImages = computed(() => {
@@ -218,19 +253,15 @@ export default {
     }
     
     // 收藏商品
-    const handleFavorite = async () => {
+    const handleFavorite = () => {
       if (!currentUser.value) {
         ElMessage.warning('请先登录')
         router.push('/login')
         return
       }
-      
-      try {
-        // 调用收藏API
-        ElMessage.success('收藏成功')
-      } catch (error) {
-        ElMessage.error('收藏失败')
-      }
+      const before = isFavorite.value
+      store.dispatch('favorite/toggle', route.params.id)
+      ElMessage.success(before ? '已取消收藏' : '已加入收藏')
     }
     
     // 编辑商品
@@ -292,8 +323,36 @@ export default {
       }
     }
     
+    const loadProductReviews = () => {
+      try {
+        reviews.value = getReviews(route.params.id)
+      } catch { reviews.value = [] }
+    }
+
+    const submitReview = () => {
+      if (!currentUser.value) {
+        ElMessage.warning('请先登录')
+        router.push('/login')
+        return
+      }
+      if (!reviewForm.value.rating || !reviewForm.value.content.trim()) {
+        ElMessage.warning('请填写评分和评论内容')
+        return
+      }
+      addReview(route.params.id, {
+        userId: currentUser.value.id,
+        nickname: currentUser.value.nickname || currentUser.value.username,
+        rating: reviewForm.value.rating,
+        content: reviewForm.value.content.trim()
+      })
+      reviewForm.value = { rating: 0, content: '' }
+      loadProductReviews()
+      ElMessage.success('评论已提交')
+    }
+
     onMounted(() => {
       loadProduct()
+      loadProductReviews()
     })
     
     return {
@@ -306,6 +365,10 @@ export default {
       formatTime,
       handleContact,
       handleFavorite,
+      isFavorite,
+      reviews,
+      reviewForm,
+      submitReview,
       handleEdit,
       handleStatusChange,
       handleDelete
@@ -453,6 +516,17 @@ export default {
   padding-top: 30px;
   border-top: 1px solid #eee;
 }
+
+.reviews {
+  margin-top: 30px;
+  padding-top: 30px;
+  border-top: 1px solid #eee;
+}
+
+.review-item { padding: 12px 0; border-bottom: 1px dashed #eee; }
+.review-author { font-weight: 600; color: #333; margin-bottom: 4px; }
+.review-meta { font-size: 12px; color: #999; margin-left: 8px; }
+.review-content { color: #555; white-space: pre-wrap; }
 
 .seller-info h3 {
   margin-bottom: 15px;

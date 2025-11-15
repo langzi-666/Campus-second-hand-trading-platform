@@ -16,6 +16,12 @@
               <el-icon><Setting /></el-icon>
               管理后台
             </el-button>
+            <el-badge :value="unreadCount" :hidden="!unreadCount" class="mr-10">
+              <el-button type="text" @click="$router.push('/notifications')">
+                <el-icon><Bell /></el-icon>
+                通知
+              </el-button>
+            </el-badge>
             <el-button type="text" @click="$router.push('/messages')">
               <el-icon><Message /></el-icon>
               消息
@@ -107,6 +113,28 @@
             </div>
           </div>
         </div>
+
+        <!-- 热门商品 -->
+        <div class="product-section section-card mt-20">
+          <h3>热门商品</h3>
+          <div class="product-grid">
+            <div
+              v-for="product in hotProducts"
+              :key="product.id"
+              class="product-card"
+              @click="handleProductClick(product)"
+            >
+              <div class="product-image">
+                <img :src="getProductImage(product)" :alt="product.title">
+              </div>
+              <div class="product-info">
+                <h4 class="product-title">{{ product.title }}</h4>
+                <p class="product-price">¥{{ product.price }}</p>
+                <p class="product-location">{{ product.location }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
         </div>
       </div>
     </el-main>
@@ -118,7 +146,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { getFeaturedProducts } from '@/mock/data'
+import { getFeaturedProducts, getHotProducts } from '@/mock/data'
 
 export default {
   name: 'Home',
@@ -135,10 +163,12 @@ export default {
       { id: 6, name: '其他' }
     ])
     const products = ref([])
+    const hotProducts = ref([])
 
     const isAuthenticated = computed(() => store.getters['auth/isAuthenticated'])
     const currentUser = computed(() => store.getters['auth/currentUser'])
     const isAdmin = computed(() => currentUser.value && currentUser.value.role === 'admin')
+    const unreadCount = computed(() => store.getters['notify/unreadCount'])
 
     // 处理搜索
     const handleSearch = () => {
@@ -193,17 +223,28 @@ export default {
       }
     }
 
+    const loadHot = async () => {
+      try {
+        hotProducts.value = getHotProducts(12)
+      } catch (error) {
+        console.error('加载热门商品失败:', error)
+      }
+    }
+
     onMounted(() => {
       loadProducts()
+      loadHot()
     })
 
     return {
       searchKeyword,
       categories,
       products,
+      hotProducts,
       isAuthenticated,
       currentUser,
       isAdmin,
+      unreadCount,
       handleSearch,
       handleCategoryClick,
       handleProductClick,

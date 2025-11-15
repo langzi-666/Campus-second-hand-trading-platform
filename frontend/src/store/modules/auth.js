@@ -34,7 +34,7 @@ const mutations = {
 
 const actions = {
   // 登录
-  async login({ commit }, loginForm) {
+  async login({ commit, dispatch }, loginForm) {
     const map = {
       admin: { id: 1, username: 'admin', nickname: '管理员', role: 'admin', avatar: '' },
       student1: { id: 2, username: 'student1', nickname: '学生1', role: 'user', avatar: '' }
@@ -45,6 +45,8 @@ const actions = {
       const response = { code: 200, data: { token, user } }
       commit('SET_TOKEN', token)
       commit('SET_USER', user)
+      dispatch('favorite/load', null, { root: true })
+      dispatch('notify/init', null, { root: true })
       return response
     }
     try {
@@ -52,6 +54,8 @@ const actions = {
       const { token, user } = response.data
       commit('SET_TOKEN', token)
       commit('SET_USER', user)
+      dispatch('favorite/load', null, { root: true })
+      dispatch('notify/init', null, { root: true })
       return response
     } catch (error) {
       throw error
@@ -69,8 +73,10 @@ const actions = {
   },
   
   // 登出
-  logout({ commit }) {
+  logout({ commit, dispatch }) {
     commit('CLEAR_AUTH')
+    dispatch('favorite/load', null, { root: true })
+    dispatch('notify/init', null, { root: true })
   },
   
   // 更新用户信息
